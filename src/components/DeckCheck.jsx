@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { checkDeck, parseDeck } from '../lib/deck'
 import { countAll } from '../lib/useCollection'
-import { DOMAIN_COLOR, PUBLIC_MODE, money } from '../lib/catalog'
+import { DOMAIN_COLOR, PUBLIC_MODE } from '../lib/catalog'
+import { useMoney } from '../lib/currency'
 
 const PLACEHOLDER = `Paste a decklist, for example:
 
@@ -10,6 +11,7 @@ const PLACEHOLDER = `Paste a decklist, for example:
 10 Order Rune (OGN-214)`
 
 export default function DeckCheck({ cards, qty, decks, onSave, onRemove, onClose, onJump }) {
+  const money = useMoney()
   const [activeId, setActiveId] = useState(null)
   const [name, setName] = useState('')
   const [text, setText] = useState('')

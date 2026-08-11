@@ -1,11 +1,13 @@
 import { memo, useState } from 'react'
-import { DOMAIN_COLOR, money } from '../lib/catalog'
-import { countOf } from '../lib/useCollection'
-import { PUBLIC_MODE } from '../lib/catalog'
+import { DOMAIN_COLOR, PUBLIC_MODE } from '../lib/catalog'
+import { countOf, keptOf } from '../lib/useCollection'
+import { useMoney } from '../lib/currency'
 
-function CardTile({ card, qty, lang, onBump, bagQty = 0, onBag }) {
+function CardTile({ card, qty, lang, onBump, bagQty = 0, onBag, keep, onKeep }) {
   const [broken, setBroken] = useState(false)
+  const money = useMoney()
   const here = countOf(qty, card.key, lang)
+  const kept = keep ? keptOf(keep, card.key, lang) : 0
   const other = countOf(qty, card.key, lang === 'EN' ? 'CN' : 'EN')
   const owned = here > 0 || other > 0
 
@@ -55,6 +57,17 @@ function CardTile({ card, qty, lang, onBump, bagQty = 0, onBag }) {
                   aria-label={`Remove one ${lang} ${card.name}`}>−</button>
           <div className="qty-n" data-owned={here > 0}>{here}</div>
           <button onClick={() => onBump(card.key, 1, lang)} aria-label={`Add one ${lang} ${card.name}`}>+</button>
+        </div>
+      )}
+
+      {/* Reserved copies stay in your collection but are withheld when you publish. */}
+      {!PUBLIC_MODE && onKeep && here > 0 && (
+        <div className="keepbar" data-kept={kept > 0}>
+          <button onClick={() => onKeep(card.key, -1, lang, here)} disabled={kept === 0}
+                  aria-label={`Reserve one fewer ${card.name}`}>−</button>
+          <span>{kept > 0 ? `${kept} of ${here} kept` : 'keep none'}</span>
+          <button onClick={() => onKeep(card.key, 1, lang, here)} disabled={kept >= here}
+                  aria-label={`Reserve one more ${card.name}`}>+</button>
         </div>
       )}
     </article>

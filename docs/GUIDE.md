@@ -55,6 +55,25 @@ Note this is different from the **FND** set code. FND is the Chinese-market rele
 its own card pool and its own catalog rows. The CN counter is for a Chinese printing of a
 card that also exists in English.
 
+## Reserving copies
+
+Under each card's stepper is a **keep** row. Reserved copies stay in your collection —
+counted, valued, usable in deck checks — but are withheld when you publish.
+
+Own three of a card and keep one: the public page offers two. Keep all of them and the
+card vanishes from the public page entirely rather than showing as unavailable.
+
+Reserving is per printing and per language, so keeping your Chinese copy while listing the
+English one works the way you'd expect.
+
+Reservations are stored separately from quantities, so clearing one can never disturb the
+count of what you own. They ride along in Export backup. The Data panel shows how many
+copies are being held back before you publish.
+
+The netting happens at publish time, so **changing a reservation doesn't take effect until
+you publish again**. If you reserve a card that's already listed, push a new snapshot.
+
+
 ## Decks
 
 **Decks** in the top bar. Paste a list and it tells you what you're short, live as you type.
@@ -190,6 +209,38 @@ no undo, and no way to rebuild it.
 What it deliberately doesn't do is track cost basis. The app has no idea what you paid, so
 it can show what things are worth but never what you made. For the eBay side, Owned to CSV
 with your own purchase column is still the honest answer.
+
+
+## Yen prices
+
+A **$ / ¥** toggle sits in the filter bar whenever an exchange rate is available. It
+changes every price on the page — cards, deck costs, want-list totals, the exported text.
+
+**Read this before relying on it.** Prices come from TCGplayer's US market feed. Yen
+figures are that number multiplied by an exchange rate — they are *not* Japanese market
+prices, and for this game the two genuinely differ. A converted figure shown to a buyer in
+Japan looks like a local price and isn't one. Anywhere yen is displayed, the app states
+the rate it used, and the exported want list carries the same line, so the number can't
+travel without its context.
+
+The rate is the ECB reference rate via [Frankfurter](https://frankfurter.dev), free and
+keyless, fetched whenever the importer runs — so a daily price refresh updates it too. If
+the lookup fails the previous rate is kept rather than dropped, and if there's never been
+one the toggle simply doesn't appear.
+
+**Setting your own rate** is usually the better move if you're actually selling:
+
+```bash
+python3 scripts/riftbound_import.py --prices-only --rate 150
+```
+
+A fixed rate lets you bake in the gap between US and Japanese pricing, or a margin, rather
+than being pinned to the interbank number that changes daily. It's stored the same way and
+labelled `manual` in the catalog. Re-run with `--rate` whenever you want to change it; run
+without it to go back to the live rate.
+
+The **Data → Publish** panel has a currency selector controlling which one the published
+page opens in. Visitors can still toggle.
 
 
 ## Publishing a public view

@@ -63,6 +63,34 @@ SEALED = re.compile(
 )
 
 
+# ECB reference rates via Frankfurter — free, no key. The .dev host is current; the .app
+# host is the older one and still answers, so it stands in if the first is unreachable.
+FX_ENDPOINTS = [
+    "https://api.frankfurter.dev/v1/latest?base=USD&symbols=JPY",
+    "https://api.frankfurter.app/latest?from=USD&to=JPY",
+]
+
+
+def fetch_rate(manual=None):
+    """USD to JPY. A manual rate always wins — see the note in the guide about why you
+    might want one that isn't the interbank figure."""
+    if manual:
+        return {"JPY": float(manual), "rateDate": now()[:10], "source": "manual"}
+
+    for url in FX_ENDPOINTS:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "riftbound-tracker/2.0"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            rate = (data.get("rates") or {}).get("JPY")
+            if rate:
+                return {"JPY": float(rate), "rateDate": data.get("date") or now()[:10],
+                        "source": "ECB via Frankfurter"}
+        except Exception as e:
+            print(f"  rate lookup failed at {url.split('/')[2]}: {e}")
+    return None
+
+
 def now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -170,7 +198,7 @@ def write_catalog(doc):
 
 
 # --------------------------------------------------------------------- prices only
-def refresh_prices(cat_id):
+def refresh_prices(cat_id, rate_override=None):
     doc = load_catalog()
     if not doc or not doc.get("cards"):
         sys.exit("No catalog to update. Run a full import first (--cards-only).")
@@ -194,6 +222,11 @@ def refresh_prices(cat_id):
         if c.get("price") != new:
             c["price"] = new
             changed += 1
+
+    fx = fetch_rate(rate_override)
+    if fx:
+        doc["fx"] = fx
+        print(f"USD to JPY: {fx['JPY']} ({fx['source']}, {fx['rateDate']})")
 
     doc["pricesUpdated"] = now()
     write_catalog(doc)
@@ -312,11 +345,18 @@ def full_import(args, cat_id, cat_name):
                 r["image"] = local[r["id"]]
 
     stamp = now()
+    fx = fetch_rate(args.rate) or (previous or {}).get("fx")
+    if fx:
+        print(f"USD to JPY: {fx['JPY']} ({fx['source']}, {fx['rateDate']})")
+    else:
+        print("No exchange rate available — yen prices will be unavailable.")
+
     write_catalog({
-        "version": 2,
+        "version": 3,
         "cardsUpdated": stamp,
         "pricesUpdated": stamp,
         "imagesUpdated": (previous or {}).get("imagesUpdated"),
+        "fx": fx,
         "cards": rows,
     })
     print(f"\nWrote {len(rows)} cards to {CATALOG}" + (f" (skipped {skipped} sealed)" if skipped else ""))
@@ -362,6 +402,8 @@ def main():
     ap.add_argument("--sets", nargs="*", help="limit a full import to these set codes")
     ap.add_argument("--out", default="", help="also write a CSV here for the spreadsheet")
     ap.add_argument("--category-id", type=int, help="override category auto-detection")
+    ap.add_argument("--rate", type=float,
+                    help="fixed USD to JPY rate to use instead of the ECB reference rate")
     args = ap.parse_args()
 
     if args.prices_only and (args.images or args.images_only):
@@ -369,7 +411,7 @@ def main():
 
     if args.prices_only:
         cat_id, _ = find_category(args.category_id)
-        refresh_prices(cat_id)
+        refresh_prices(cat_id, args.rate)
         return
 
     if args.images_only or args.force_images:

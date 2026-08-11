@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const KEY = 'riftbound.collection.v1'
+const KEEP_KEY = 'riftbound.keep.v1'
 
 /**
  * Storage key for one card in one language. English keeps the bare card key so every
@@ -63,11 +64,75 @@ export function useCollection() {
   return { qty, bump, replaceAll, saveError }
 }
 
-export function downloadJSON(qty, decks = [], history = []) {
+/**
+ * Copies held back from the published site.
+ *
+ * Keyed exactly like quantities, so reserving is per printing and per language — keeping
+ * your Chinese copy of a card and listing the English one is the normal case, not an edge
+ * case. Stored separately from quantities so that clearing a reservation can never
+ * disturb the count of what you actually own.
+ */
+export function useKeep() {
+  const [keep, setKeep] = useState(() => {
+    try {
+      const raw = localStorage.getItem(KEEP_KEY)
+      const parsed = raw ? JSON.parse(raw) : {}
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+    } catch {
+      return {}
+    }
+  })
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    try {
+      localStorage.setItem(KEEP_KEY, JSON.stringify(keep))
+    } catch {
+      /* the collection hook surfaces the storage warning */
+    }
+  }, [keep])
+
+  const bumpKeep = useCallback((cardKey, delta, lang = 'EN', max = Infinity) => {
+    const k = slot(cardKey, lang)
+    setKeep((prev) => {
+      const next = { ...prev }
+      const v = Math.max(0, Math.min((prev[k] || 0) + delta, max))
+      if (v === 0) delete next[k]
+      else next[k] = v
+      return next
+    })
+  }, [])
+
+  const replaceKeep = useCallback((map) => setKeep(map && typeof map === 'object' ? map : {}), [])
+
+  return { keep, bumpKeep, replaceKeep }
+}
+
+export const keptOf = (keep, cardKey, lang) => keep[slot(cardKey, lang)] || 0
+
+/**
+ * What the published site is allowed to offer: owned minus reserved, per slot.
+ * Clamped at zero and stripped of empties, so a fully reserved card disappears from the
+ * public page rather than appearing with nothing available.
+ */
+export function publishableQty(qty, keep) {
+  const out = {}
+  for (const [k, n] of Object.entries(qty)) {
+    const available = Math.max(0, (n || 0) - (keep[k] || 0))
+    if (available > 0) out[k] = available
+  }
+  return out
+}
+
+export function downloadJSON(qty, decks = [], history = [], keep = {}) {
   const stamp = new Date().toISOString().slice(0, 10)
   const blob = new Blob(
     [JSON.stringify(
-      { format: 'riftbound-collection', version: 4, exported: stamp, quantities: qty, decks, history },
+      { format: 'riftbound-collection', version: 5, exported: stamp, quantities: qty, decks, history, keep },
       null, 2)],
     { type: 'application/json' },
   )
@@ -126,6 +191,7 @@ export function readBackupFile(file) {
           quantities: clean,
           decks: Array.isArray(parsed.decks) ? parsed.decks : null,
           history: Array.isArray(parsed.history) ? parsed.history : null,
+          keep: parsed.keep && typeof parsed.keep === 'object' ? parsed.keep : null,
         })
       } catch {
         reject(new Error("That file isn't a collection backup."))

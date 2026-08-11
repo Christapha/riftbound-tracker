@@ -118,7 +118,8 @@ export function reconcile(bag, cards, availableOf) {
   return { rows, dropped }
 }
 
-export function bagAsText(rows, title) {
+export function bagAsText(rows, title, fmt = null) {
+  const show = fmt?.money || ((n) => (n == null ? 'no price' : `$${n.toFixed(2)}`))
   const total = rows.reduce((t, r) => t + (r.card.price || 0) * r.want, 0)
   const cards = rows.reduce((t, r) => t + r.want, 0)
   const pad = (s, n) => String(s).padEnd(n)
@@ -132,7 +133,7 @@ export function bagAsText(rows, title) {
   ].filter((l) => l !== null)
 
   for (const { card, want } of rows) {
-    const price = card.price != null ? `$${card.price.toFixed(2)} ea` : 'no price'
+    const price = card.price != null ? `${show(card.price)} ea` : 'no price'
     lines.push(
       `${pad(`${want}x`, 5)}${pad(card.name, 32)}${pad(`${card.set} ${card.number}`, 12)}` +
       `${pad(card.finish, 20)}${price}`,
@@ -140,7 +141,12 @@ export function bagAsText(rows, title) {
   }
 
   lines.push('')
-  lines.push(`Reference total: $${total.toFixed(2)} (TCGplayer market prices, not an offer)`)
+  lines.push(`Reference total: ${show(total)} (TCGplayer market prices, not an offer)`)
+  if (fmt?.currency === 'JPY' && fmt.rate) {
+    // Say the rate out loud in the exported text, so a yen figure is never mistaken for
+    // a Japanese-market price by whoever reads it later.
+    lines.push(`Converted from USD at ${fmt.rate.toFixed(2)} JPY/USD${fmt.rateDate ? ` (${fmt.rateDate})` : ''}`)
+  }
   return lines.join('\n')
 }
 
@@ -155,7 +161,7 @@ export function bagAsText(rows, title) {
  * The key lives in a public file by design — these services issue publishable keys for
  * exactly this. Never put a private API token here.
  */
-export async function sendBag({ url, key, rows, from, reply, note, title }) {
+export async function sendBag({ url, key, rows, from, reply, note, title, fmt }) {
   const body = {
     subject: `Riftbound want list from ${from}`,
     from_name: from,
@@ -166,7 +172,7 @@ export async function sendBag({ url, key, rows, from, reply, note, title }) {
       `Reply to: ${reply}`,
       note ? `Note: ${note}` : null,
       '',
-      bagAsText(rows, title),
+      bagAsText(rows, title, fmt),
     ].filter((l) => l !== null).join('\n'),
     botcheck: '', // honeypot; real submitters never fill this
   }
@@ -191,8 +197,8 @@ export async function sendBag({ url, key, rows, from, reply, note, title }) {
 }
 
 /** Fallback when there's no form backend: hand the list to the visitor's mail client. */
-export function mailtoFor(email, rows, title, from) {
-  const body = bagAsText(rows, title)
+export function mailtoFor(email, rows, title, from, fmt) {
+  const body = bagAsText(rows, title, fmt)
   const subject = `Riftbound want list${from ? ` from ${from}` : ''}`
   // mailto URLs get truncated past roughly 2000 characters in most clients.
   const trimmed = body.length > 1600

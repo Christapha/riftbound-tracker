@@ -22,7 +22,7 @@ const JOBS = [
   },
 ]
 
-export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
+export default function DataPanel({ meta, qty, reserved = 0, decks, onClose, onDone }) {
   const [busy, setBusy] = useState(null)
   const [log, setLog] = useState(null)
   const [title, setTitle] = useState('')
@@ -30,6 +30,7 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
   const [submitUrl, setSubmitUrl] = useState('')
   const [submitKey, setSubmitKey] = useState('')
   const [email, setEmail] = useState('')
+  const [currency, setCurrency] = useState('USD')
 
   const run = async (id) => {
     setBusy(id)
@@ -99,6 +100,12 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
             automatically; without one, visitors copy it and send it themselves.
             These fields land in a public file, so only use a publishable form key here.
           </div>
+          {reserved > 0 && (
+            <div className="data-reserved">
+              {reserved} reserved cop{reserved === 1 ? 'y is' : 'ies are'} being held back —
+              they stay in your collection and won't appear on the published page.
+            </div>
+          )}
           <div className="data-publish-row">
             <input
               className="deck-name-input"
@@ -141,6 +148,11 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
               aria-label="Email fallback"
               onChange={(e) => setEmail(e.target.value)}
             />
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)}
+                    aria-label="Currency the public page opens in">
+              <option value="USD">Opens in $</option>
+              <option value="JPY">Opens in ¥</option>
+            </select>
             <button
               className="btn btn-go"
               disabled={Boolean(busy)}
@@ -149,7 +161,7 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
                 setLog(null)
                 try {
                   const res = await publishSnapshot(qty, decks, title.trim(), contact.trim(), {
-                    submitUrl: submitUrl.trim(), submitKey: submitKey.trim(), email: email.trim(),
+                    submitUrl: submitUrl.trim(), submitKey: submitKey.trim(), email: email.trim(), currency,
                   })
                   setLog({ ok: true, text: res.output })
                 } catch (e) {

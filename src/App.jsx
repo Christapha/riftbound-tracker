@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LANGS, PUBLIC_MODE, SETS, SORTS, ageOf, facets, loadCatalog, loadPublicCollection, money, runTask, sortCards } from './lib/catalog'
-import { countAll, countOf, downloadCSV, downloadJSON, readBackupFile, unslot, useCollection } from './lib/useCollection'
+import { LANGS, PUBLIC_MODE, SETS, SORTS, ageOf, facets, loadCatalog, loadPublicCollection, runTask, sortCards } from './lib/catalog'
+import { countAll, countOf, downloadCSV, downloadJSON, publishableQty, readBackupFile, unslot, useCollection, useKeep } from './lib/useCollection'
 import CardTile from './components/CardTile'
 import SetRail from './components/SetRail'
 import QuickAdd from './components/QuickAdd'
@@ -10,11 +10,12 @@ import DataPanel from './components/DataPanel'
 import ValueChart from './components/ValueChart'
 import BagPanel from './components/BagPanel'
 import { reconcile, useBag } from './lib/bag'
+import { CURRENCIES, CurrencyProvider, useCurrency } from './lib/currency'
 import { useHistory } from './lib/history'
 
 const PAGE = 120
 
-export default function App() {
+function Collection() {
   const [cards, setCards] = useState(null)
   const [isSample, setIsSample] = useState(false)
   const [meta, setMeta] = useState({})
@@ -25,6 +26,7 @@ export default function App() {
   const [loadError, setLoadError] = useState(null)
   const live = useCollection()
   const liveDecks = useDecks()
+  const { keep, bumpKeep, replaceKeep } = useKeep()
   const [snapshot, setSnapshot] = useState(null)
   const [snapshotState, setSnapshotState] = useState('loading')
   const { bag, bump: bagBump, clear: bagClear } = useBag(PUBLIC_MODE)
@@ -96,6 +98,8 @@ export default function App() {
 
   useEffect(() => setLimit(PAGE), [activeSet, search, finish, rarity, ownedOnly, sort])
 
+  const { money, currency, setCurrency, available: fxOk, rate, rateDate } = useCurrency()
+
   const opts = useMemo(() => (cards ? facets(cards) : { finishes: [], rarities: [] }), [cards])
 
   const setsPresent = useMemo(() => {
@@ -158,6 +162,12 @@ export default function App() {
     [bag],
   )
 
+  const publishQty = useMemo(() => publishableQty(qty, keep), [qty, keep])
+  const reservedCount = useMemo(
+    () => Object.values(keep).reduce((n, v) => n + (v > 0 ? v : 0), 0),
+    [keep],
+  )
+
   const bagSummary = useMemo(() => {
     if (!PUBLIC_MODE || !cards) return { cards: 0, value: 0, unpriced: 0 }
     const { rows } = reconcile(bag, cards, availableOf)
@@ -183,10 +193,12 @@ export default function App() {
     e.target.value = ''
     if (!file) return
     try {
-      const { quantities, decks: savedDecks, history: savedHistory } = await readBackupFile(file)
+      const { quantities, decks: savedDecks, history: savedHistory, keep: savedKeep } =
+        await readBackupFile(file)
       replaceAll(quantities)
       if (savedDecks) replaceAllDecks(savedDecks)
       if (savedHistory) replaceHistory(savedHistory)
+      if (savedKeep) replaceKeep(savedKeep)
       setToast(
         `Loaded ${Object.keys(quantities).length} entries` +
         (savedDecks?.length ? `, ${savedDecks.length} decks` : '') +
@@ -221,7 +233,9 @@ export default function App() {
           <div className="stats">
             <div>
               <div className="stat-k">{stats.copies.toLocaleString()}</div>
-              <div className="stat-l">Copies{stats.cn ? ` · ${stats.cn} CN` : ''}</div>
+              <div className="stat-l">
+                Copies{stats.cn ? ` · ${stats.cn} CN` : ''}{reservedCount ? ` · ${reservedCount} kept` : ''}
+              </div>
             </div>
             <div>
               <div className="stat-k">{stats.distinct.toLocaleString()}</div>
@@ -257,7 +271,7 @@ export default function App() {
               <button className="btn" onClick={() => setChartOpen(true)} title="Collection value over time">
                 Value
               </button>
-              <button className="btn" onClick={() => downloadJSON(qty, decks, history)}>Export backup</button>
+              <button className="btn" onClick={() => downloadJSON(qty, decks, history, keep)}>Export backup</button>
               <button className="btn btn-quiet" onClick={() => fileRef.current?.click()}>Load backup</button>
               <button className="btn btn-quiet" onClick={() => { downloadCSV(cards || [], qty); setToast('CSV of owned cards downloaded') }}>
                 Owned to CSV
@@ -280,6 +294,14 @@ export default function App() {
       {snapshotState === 'ok' && Object.keys(snapshot?.quantities || {}).length === 0 && (
         <div className="banner">
           <strong>Nothing published yet.</strong> The snapshot loaded but lists no cards.
+        </div>
+      )}
+
+      {currency === 'JPY' && rate && (
+        <div className="banner banner-quiet">
+          Yen figures are US market prices converted at <strong>{rate.toFixed(2)} ¥/$</strong>
+          {rateDate ? ` (${rateDate})` : ''}. Japanese market prices for this game differ, so
+          treat these as a reference rather than a local price.
         </div>
       )}
 
@@ -322,6 +344,16 @@ export default function App() {
               {SORTS.filter((o) => !(PUBLIC_MODE && o.ownerOnly))
                 .map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
+
+            {fxOk && (
+              <div className="seg seg-cur" title={rate ? `1 USD = ${rate.toFixed(2)} JPY${rateDate ? ` (${rateDate})` : ''}` : ''}>
+                {CURRENCIES.map((c) => (
+                  <button key={c.id} data-on={currency === c.id} onClick={() => setCurrency(c.id)}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="seg">
               <button data-on={!ownedOnly} onClick={() => setOwnedOnly(false)}>Everything</button>
@@ -381,6 +413,8 @@ export default function App() {
               onBump={bump}
               bagQty={bag[c.key] || 0}
               onBag={PUBLIC_MODE ? bagBump : undefined}
+              keep={keep}
+              onKeep={PUBLIC_MODE ? undefined : bumpKeep}
             />
           ))}
           {visible.length > limit && (
@@ -442,7 +476,8 @@ export default function App() {
       {dataOpen && !PUBLIC_MODE && (
         <DataPanel
           meta={meta}
-          qty={qty}
+          qty={publishQty}
+          reserved={reservedCount}
           decks={decks}
           onClose={() => setDataOpen(false)}
           onDone={() => refreshCatalog().then(() => setToast('Card data updated')).catch(() => {})}
@@ -451,5 +486,33 @@ export default function App() {
 
       {(toast || saveError) && <div className="toast">{saveError || toast}</div>}
     </div>
+  )
+}
+
+export default function App() {
+  const [fx, setFx] = useState(null)
+  const [initial, setInitial] = useState('USD')
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let done = false
+    loadCatalog()
+      .then((c) => { if (!done) setFx(c.fx || null) })
+      .catch(() => {})
+      .finally(() => { if (!done) setReady(true) })
+    if (PUBLIC_MODE) {
+      loadPublicCollection().then((doc) => {
+        if (!done && doc?.currency) setInitial(doc.currency)
+      })
+    }
+    return () => { done = true }
+  }, [])
+
+  if (!ready) return <div className="empty"><p>Loading…</p></div>
+
+  return (
+    <CurrencyProvider fx={fx} initial={initial}>
+      <Collection />
+    </CurrencyProvider>
   )
 }

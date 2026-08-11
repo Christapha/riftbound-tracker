@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { RANGES, sliceRange } from '../lib/history'
-import { money } from '../lib/catalog'
+import { useMoney } from '../lib/currency'
 
 const W = 900
 const H = 300
@@ -10,6 +10,7 @@ const fmtDate = (d) =>
   new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
 export default function ValueChart({ history, onClear }) {
+  const money = useMoney()
   const [range, setRange] = useState('all')
   const [hover, setHover] = useState(null)
 

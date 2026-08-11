@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
-import { DOMAIN_COLOR, money } from '../lib/catalog'
+import { DOMAIN_COLOR } from '../lib/catalog'
+import { useCurrency } from '../lib/currency'
 import { bagAsText, encodeBag, mailtoFor, reconcile, sendBag } from '../lib/bag'
 
 export default function BagPanel({
   bag, cards, availableOf, onBump, onClear, onClose, title, contact, submitUrl, submitKey, email,
 }) {
+  const { money, currency, rate, rateDate } = useCurrency()
   const [copied, setCopied] = useState(null)
   const [from, setFrom] = useState('')
   const [reply, setReply] = useState('')
@@ -27,7 +29,10 @@ export default function BagPanel({
     { cards: 0, value: 0, unpriced: 0 },
   )
 
-  const text = useMemo(() => bagAsText(rows, title), [rows, title])
+  const text = useMemo(
+    () => bagAsText(rows, title, { money, currency, rate, rateDate }),
+    [rows, title, money, currency, rate, rateDate],
+  )
 
   const flash = (what) => {
     setCopied(what)
@@ -145,6 +150,7 @@ export default function BagPanel({
                         try {
                           await sendBag({
                             url: submitUrl, key: submitKey, rows, title,
+                            fmt: { money, currency, rate, rateDate },
                             from: from.trim(), reply: reply.trim(), note: note.trim(),
                           })
                           setSent(true)
@@ -170,7 +176,7 @@ export default function BagPanel({
             {!submitUrl && email && (
               <div className="bag-send">
                 <div className="data-job-label">Send this list</div>
-                <a className="btn btn-go bag-mail" href={mailtoFor(email, rows, title, from)}>
+                <a className="btn btn-go bag-mail" href={mailtoFor(email, rows, title, from, { money, currency, rate, rateDate })}>
                   Open in email
                 </a>
                 <p className="deck-note">

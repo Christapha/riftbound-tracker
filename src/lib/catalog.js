@@ -118,6 +118,7 @@ async function fetchCatalog(path) {
       cardsUpdated: data?.cardsUpdated || null,
       pricesUpdated: data?.pricesUpdated || null,
       imagesUpdated: data?.imagesUpdated || null,
+      fx: data?.fx || null,
     }
   } catch {
     return null

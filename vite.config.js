@@ -37,7 +37,7 @@ function localApi() {
         req.on('data', (c) => { raw += c })
         req.on('end', () => {
           try {
-            const { quantities, decks, title, contact, submitUrl, submitKey, email } =
+            const { quantities, decks, title, contact, submitUrl, submitKey, email, currency } =
               JSON.parse(raw || '{}')
             if (!quantities || typeof quantities !== 'object') {
               return send(400, { error: 'Expected a quantities object' })
@@ -53,6 +53,7 @@ function localApi() {
               submitUrl: typeof submitUrl === 'string' ? submitUrl : '',
               submitKey: typeof submitKey === 'string' ? submitKey : '',
               email: typeof email === 'string' ? email : '',
+              currency: currency === 'JPY' ? 'JPY' : 'USD',
               quantities,
               decks: Array.isArray(decks) ? decks : [],
             }

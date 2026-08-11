@@ -279,6 +279,13 @@ file at a predictable URL — it has to be, it's the page's data source. Anyone 
 your total can download it and add it up in a minute. Hiding the header figure means the
 page doesn't *advertise* a number to every casual visitor; it is not secrecy.
 
+`npm run check` builds both bundles and fails if any owner-only feature string appears in
+the public one, or if a visitor-facing one is missing. It runs in CI before every deploy.
+This exists because **Owned to CSV** once shipped to the published site — it sat a few
+lines outside a `{!PUBLIC_MODE && ...}` wrapper, which reads as fine and produced a button
+that downloaded the entire inventory with quantities and line values. A successful build
+says nothing about which features are in it.
+
 If the total genuinely matters, the only real fix is publishing less: clear the quantities
 you'd rather not list before hitting Publish, and the site never learns about them.
 

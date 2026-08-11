@@ -259,12 +259,12 @@ export default function App() {
               </button>
               <button className="btn" onClick={() => downloadJSON(qty, decks, history)}>Export backup</button>
               <button className="btn btn-quiet" onClick={() => fileRef.current?.click()}>Load backup</button>
+              <button className="btn btn-quiet" onClick={() => { downloadCSV(cards || [], qty); setToast('CSV of owned cards downloaded') }}>
+                Owned to CSV
+              </button>
+              <input ref={fileRef} type="file" accept="application/json,.json" onChange={onImportFile} style={{ display: 'none' }} />
             </>
           )}
-          <button className="btn btn-quiet" onClick={() => { downloadCSV(cards || [], qty); setToast('CSV of owned cards downloaded') }}>
-            Owned to CSV
-          </button>
-          <input ref={fileRef} type="file" accept="application/json,.json" onChange={onImportFile} style={{ display: 'none' }} />
         </div>
       </header>
 

@@ -37,7 +37,8 @@ function localApi() {
         req.on('data', (c) => { raw += c })
         req.on('end', () => {
           try {
-            const { quantities, decks, title, contact } = JSON.parse(raw || '{}')
+            const { quantities, decks, title, contact, submitUrl, submitKey, email } =
+              JSON.parse(raw || '{}')
             if (!quantities || typeof quantities !== 'object') {
               return send(400, { error: 'Expected a quantities object' })
             }
@@ -47,6 +48,11 @@ function localApi() {
               generated: new Date().toISOString(),
               title: typeof title === 'string' ? title : '',
               contact: typeof contact === 'string' ? contact : '',
+              // Delivery settings for the want list. These end up in a public file, so
+              // only ever put a publishable form key here — never a private token.
+              submitUrl: typeof submitUrl === 'string' ? submitUrl : '',
+              submitKey: typeof submitKey === 'string' ? submitKey : '',
+              email: typeof email === 'string' ? email : '',
               quantities,
               decks: Array.isArray(decks) ? decks : [],
             }

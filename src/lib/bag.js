@@ -143,3 +143,60 @@ export function bagAsText(rows, title) {
   lines.push(`Reference total: $${total.toFixed(2)} (TCGplayer market prices, not an offer)`)
   return lines.join('\n')
 }
+
+
+/**
+ * Sends the list to whatever form backend the owner configured.
+ *
+ * Deliberately vendor-agnostic: it posts a flat JSON body that Web3Forms, Formspree,
+ * Basin and most others accept. `submitKey` is only included when set, because some
+ * services want an access key in the body and others authenticate via the URL itself.
+ *
+ * The key lives in a public file by design — these services issue publishable keys for
+ * exactly this. Never put a private API token here.
+ */
+export async function sendBag({ url, key, rows, from, reply, note, title }) {
+  const body = {
+    subject: `Riftbound want list from ${from}`,
+    from_name: from,
+    email: reply,
+    replyto: reply,
+    message: [
+      `From: ${from}`,
+      `Reply to: ${reply}`,
+      note ? `Note: ${note}` : null,
+      '',
+      bagAsText(rows, title),
+    ].filter((l) => l !== null).join('\n'),
+    botcheck: '', // honeypot; real submitters never fill this
+  }
+  if (key) body.access_key = key
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  let payload = null
+  try {
+    payload = JSON.parse(await res.text())
+  } catch {
+    /* some backends answer with a redirect or empty body on success */
+  }
+  if (!res.ok || (payload && payload.success === false)) {
+    throw new Error(payload?.message || `The form service returned ${res.status}.`)
+  }
+  return true
+}
+
+/** Fallback when there's no form backend: hand the list to the visitor's mail client. */
+export function mailtoFor(email, rows, title, from) {
+  const body = bagAsText(rows, title)
+  const subject = `Riftbound want list${from ? ` from ${from}` : ''}`
+  // mailto URLs get truncated past roughly 2000 characters in most clients.
+  const trimmed = body.length > 1600
+    ? `${body.slice(0, 1600)}\n\n[list truncated — full version copied separately]`
+    : body
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(trimmed)}`
+}

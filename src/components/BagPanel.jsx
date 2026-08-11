@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react'
 import { DOMAIN_COLOR, money } from '../lib/catalog'
-import { bagAsText, encodeBag, reconcile } from '../lib/bag'
+import { bagAsText, encodeBag, mailtoFor, reconcile, sendBag } from '../lib/bag'
 
-export default function BagPanel({ bag, cards, availableOf, onBump, onClear, onClose, title, contact }) {
+export default function BagPanel({
+  bag, cards, availableOf, onBump, onClear, onClose, title, contact, submitUrl, submitKey, email,
+}) {
   const [copied, setCopied] = useState(null)
+  const [from, setFrom] = useState('')
+  const [reply, setReply] = useState('')
+  const [note, setNote] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(null)
 
   const { rows, dropped } = useMemo(
     () => reconcile(bag, cards, availableOf),
@@ -107,6 +114,70 @@ export default function BagPanel({ bag, cards, availableOf, onBump, onClear, onC
               <p className="deck-note">
                 {dropped} item{dropped === 1 ? '' : 's'} removed — no longer in the collection.
               </p>
+            )}
+
+            {submitUrl && (
+              <div className="bag-send">
+                <div className="data-job-label">Send this list</div>
+                {sent === true ? (
+                  <p className="deck-note deck-ok">
+                    Sent. You'll hear back directly — this doesn't hold the cards, so it's
+                    first come, first served until you've agreed on something.
+                  </p>
+                ) : (
+                  <>
+                    <div className="bag-fields">
+                      <input value={from} placeholder="Your name" aria-label="Your name"
+                             onChange={(e) => setFrom(e.target.value)} />
+                      <input value={reply} placeholder="Email or Discord to reply to"
+                             aria-label="How to reply to you"
+                             onChange={(e) => setReply(e.target.value)} />
+                    </div>
+                    <textarea className="bag-note" value={note} rows={2}
+                              placeholder="Anything else? (optional)" aria-label="Note"
+                              onChange={(e) => setNote(e.target.value)} />
+                    <button
+                      className="btn btn-go"
+                      disabled={sending || !from.trim() || !reply.trim()}
+                      onClick={async () => {
+                        setSending(true)
+                        setSent(null)
+                        try {
+                          await sendBag({
+                            url: submitUrl, key: submitKey, rows, title,
+                            from: from.trim(), reply: reply.trim(), note: note.trim(),
+                          })
+                          setSent(true)
+                        } catch (e) {
+                          setSent(e.message)
+                        } finally {
+                          setSending(false)
+                        }
+                      }}
+                    >
+                      {sending ? 'Sending…' : 'Send list'}
+                    </button>
+                    {typeof sent === 'string' && (
+                      <p className="deck-note">
+                        Couldn't send — {sent} Copy the list below and send it manually instead.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {!submitUrl && email && (
+              <div className="bag-send">
+                <div className="data-job-label">Send this list</div>
+                <a className="btn btn-go bag-mail" href={mailtoFor(email, rows, title, from)}>
+                  Open in email
+                </a>
+                <p className="deck-note">
+                  Opens your mail app with the list filled in. Long lists get trimmed, so use
+                  Copy list below if yours is large.
+                </p>
+              </div>
             )}
 
             <div className="bag-actions">

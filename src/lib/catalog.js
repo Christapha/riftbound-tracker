@@ -159,11 +159,11 @@ export async function loadPublicCollection() {
 }
 
 /** Sends the current collection to the dev server to be written as a public snapshot. */
-export async function publishSnapshot(quantities, decks, title, contact) {
+export async function publishSnapshot(quantities, decks, title, contact, delivery = {}) {
   const res = await fetch('/api/publish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ quantities, decks, title, contact }),
+    body: JSON.stringify({ quantities, decks, title, contact, ...delivery }),
   })
   const text = await res.text()
   let body

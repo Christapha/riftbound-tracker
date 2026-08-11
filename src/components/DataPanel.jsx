@@ -27,6 +27,9 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
   const [log, setLog] = useState(null)
   const [title, setTitle] = useState('')
   const [contact, setContact] = useState('')
+  const [submitUrl, setSubmitUrl] = useState('')
+  const [submitKey, setSubmitKey] = useState('')
+  const [email, setEmail] = useState('')
 
   const run = async (id) => {
     setBusy(id)
@@ -92,7 +95,9 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
           <div className="data-job-blurb">
             Writes what you own to <code>public/collection.json</code>. Commit and push it and
             the hosted site shows your collection — read-only, with a want list visitors can
-            build and send you. The contact line tells them where to send it.
+            build and send you. Add a form endpoint to get the list emailed to you
+            automatically; without one, visitors copy it and send it themselves.
+            These fields land in a public file, so only use a publishable form key here.
           </div>
           <div className="data-publish-row">
             <input
@@ -111,6 +116,31 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
               aria-label="Contact shown to visitors"
               onChange={(e) => setContact(e.target.value)}
             />
+          </div>
+          <div className="data-publish-row">
+            <input
+              className="deck-name-input"
+              value={submitUrl}
+              placeholder="Form endpoint URL (optional) — e.g. https://api.web3forms.com/submit"
+              aria-label="Form endpoint"
+              onChange={(e) => setSubmitUrl(e.target.value)}
+            />
+          </div>
+          <div className="data-publish-row">
+            <input
+              className="deck-name-input"
+              value={submitKey}
+              placeholder="Form access key (optional)"
+              aria-label="Form access key"
+              onChange={(e) => setSubmitKey(e.target.value)}
+            />
+            <input
+              className="deck-name-input"
+              value={email}
+              placeholder="Email fallback (optional)"
+              aria-label="Email fallback"
+              onChange={(e) => setEmail(e.target.value)}
+            />
             <button
               className="btn btn-go"
               disabled={Boolean(busy)}
@@ -118,7 +148,9 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
                 setBusy('publish')
                 setLog(null)
                 try {
-                  const res = await publishSnapshot(qty, decks, title.trim(), contact.trim())
+                  const res = await publishSnapshot(qty, decks, title.trim(), contact.trim(), {
+                    submitUrl: submitUrl.trim(), submitKey: submitKey.trim(), email: email.trim(),
+                  })
                   setLog({ ok: true, text: res.output })
                 } catch (e) {
                   setLog({ ok: false, text: e.message })

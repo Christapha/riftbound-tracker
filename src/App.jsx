@@ -26,6 +26,7 @@ export default function App() {
   const live = useCollection()
   const liveDecks = useDecks()
   const [snapshot, setSnapshot] = useState(null)
+  const [snapshotState, setSnapshotState] = useState('loading')
   const { bag, bump: bagBump, clear: bagClear } = useBag(PUBLIC_MODE)
 
   // On the hosted site the collection is a shipped file and nothing can edit it.
@@ -56,7 +57,18 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (PUBLIC_MODE) loadPublicCollection().then(setSnapshot)
+    if (!PUBLIC_MODE) return
+    loadPublicCollection().then((doc) => {
+      if (doc) {
+        setSnapshot(doc)
+        setSnapshotState('ok')
+      } else {
+        // Without a snapshot the "Owned only" default hides every card, which reads as a
+        // blank page rather than a missing file. Say what happened and show the catalog.
+        setSnapshotState('missing')
+        setOwnedOnly(false)
+      }
+    })
   }, [])
 
   useEffect(() => {
@@ -224,6 +236,21 @@ export default function App() {
         </div>
       </header>
 
+      {snapshotState === 'missing' && (
+        <div className="banner">
+          <strong>No collection published.</strong> This site couldn't read
+          <code>collection.json</code>, so it's showing the card catalogue rather than anyone's
+          collection. If this is your site: publish a snapshot from the local app and make sure
+          the file is committed at <code>public/collection.json</code>.
+        </div>
+      )}
+
+      {snapshotState === 'ok' && Object.keys(snapshot?.quantities || {}).length === 0 && (
+        <div className="banner">
+          <strong>Nothing published yet.</strong> The snapshot loaded but lists no cards.
+        </div>
+      )}
+
       {isSample && (
         <div className="banner">
           <strong>Showing sample data.</strong> Your card counts are safe, but the catalog is
@@ -355,6 +382,9 @@ export default function App() {
           onClose={() => setBagOpen(false)}
           title={snapshot?.title}
           contact={snapshot?.contact}
+          submitUrl={snapshot?.submitUrl}
+          submitKey={snapshot?.submitKey}
+          email={snapshot?.email}
         />
       )}
 

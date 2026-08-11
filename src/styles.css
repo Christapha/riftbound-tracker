@@ -592,3 +592,17 @@ select {
 @media (max-width: 640px) {
   .bag-have { display: none; }
 }
+
+.bag-send {
+  margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--ink-600);
+}
+.bag-send .data-job-label { margin-bottom: 12px; }
+.bag-fields { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.bag-fields input, .bag-note {
+  flex: 1 1 220px; min-width: 0;
+  background: var(--ink-800); border: 1px solid var(--ink-600); border-radius: var(--r);
+  color: var(--text); padding: 9px 12px; font: inherit;
+}
+.bag-note { width: 100%; display: block; margin-bottom: 12px; resize: vertical; }
+.bag-fields input::placeholder, .bag-note::placeholder { color: var(--text-faint); }
+.bag-mail { display: inline-block; text-decoration: none; }

@@ -264,6 +264,24 @@ claim on anything.
 
 The basket lives in the visitor's own browser and never touches your repo.
 
+### What the published page shows about you
+
+Deliberately not much. The header on the public build shows the visitor **their own basket
+total**, not your inventory. Your copy count, distinct count and total market value are
+absent from that build, along with the per-set owned counts on the completion rail and the
+two sort options that rank by your holdings.
+
+What remains visible, because the page can't work without it: which cards you have, how
+many of each are available, and each card's market price.
+
+**Be clear-eyed about what that does and doesn't achieve.** `collection.json` is a public
+file at a predictable URL — it has to be, it's the page's data source. Anyone who wants
+your total can download it and add it up in a minute. Hiding the header figure means the
+page doesn't *advertise* a number to every casual visitor; it is not secrecy.
+
+If the total genuinely matters, the only real fix is publishing less: clear the quantities
+you'd rather not list before hitting Publish, and the site never learns about them.
+
 
 ## Design notes
 

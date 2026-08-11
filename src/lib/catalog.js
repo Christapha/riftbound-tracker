@@ -215,8 +215,10 @@ export const SORTS = [
   { id: 'number', label: 'Set & number' },
   { id: 'price-desc', label: 'Price, high to low' },
   { id: 'price-asc', label: 'Price, low to high' },
-  { id: 'value-desc', label: 'My value, high to low' },
-  { id: 'qty-desc', label: 'Copies owned' },
+  // Both of these rank by the owner's holdings, so they stay off the published page —
+  // the labels are meaningless to a visitor and the ordering is an inventory readout.
+  { id: 'value-desc', label: 'My value, high to low', ownerOnly: true },
+  { id: 'qty-desc', label: 'Copies owned', ownerOnly: true },
   { id: 'name', label: 'Name A–Z' },
 ]
 

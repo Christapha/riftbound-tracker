@@ -9,7 +9,7 @@ import { useDecks } from './lib/decks'
 import DataPanel from './components/DataPanel'
 import ValueChart from './components/ValueChart'
 import BagPanel from './components/BagPanel'
-import { useBag } from './lib/bag'
+import { reconcile, useBag } from './lib/bag'
 import { useHistory } from './lib/history'
 
 const PAGE = 120
@@ -158,6 +158,20 @@ export default function App() {
     [bag],
   )
 
+  const bagSummary = useMemo(() => {
+    if (!PUBLIC_MODE || !cards) return { cards: 0, value: 0, unpriced: 0 }
+    const { rows } = reconcile(bag, cards, availableOf)
+    return rows.reduce(
+      (t, r) => {
+        t.cards += r.want
+        if (r.card.price != null) t.value += r.card.price * r.want
+        else t.unpriced += r.want
+        return t
+      },
+      { cards: 0, value: 0, unpriced: 0 },
+    )
+  }, [bag, cards, availableOf])
+
   const jumpTo = (key) => {
     const el = document.getElementById(`c-${key}`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -185,26 +199,44 @@ export default function App() {
   return (
     <div className="app">
       <header className="masthead">
-        <h1 className="wordmark">Riftbound<span>Collection</span></h1>
+        <h1 className="wordmark">
+          Riftbound
+          <span>{(PUBLIC_MODE && snapshot?.title) || 'Collection'}</span>
+        </h1>
 
-        <div className="stats">
-          <div>
-            <div className="stat-k">{stats.copies.toLocaleString()}</div>
-            <div className="stat-l">Copies{stats.cn ? ` · ${stats.cn} CN` : ''}</div>
-          </div>
-          <div>
-            <div className="stat-k">{stats.distinct.toLocaleString()}</div>
-            <div className="stat-l">Distinct</div>
-          </div>
-          <div>
-            <div className="stat-k">{money(stats.value)}</div>
-            <div className="stat-l">
-              {autoPrice === 'running'
-                ? 'Refreshing prices…'
-                : `English market value${priceAge ? ` · ${priceAge.label}` : ''}`}
+        {PUBLIC_MODE ? (
+          <div className="stats">
+            <div>
+              <div className="stat-k">{bagSummary.cards}</div>
+              <div className="stat-l">In your list</div>
+            </div>
+            <div>
+              <div className="stat-k">{money(bagSummary.value)}</div>
+              <div className="stat-l">
+                Reference total{bagSummary.unpriced ? ` · ${bagSummary.unpriced} unpriced` : ''}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="stats">
+            <div>
+              <div className="stat-k">{stats.copies.toLocaleString()}</div>
+              <div className="stat-l">Copies{stats.cn ? ` · ${stats.cn} CN` : ''}</div>
+            </div>
+            <div>
+              <div className="stat-k">{stats.distinct.toLocaleString()}</div>
+              <div className="stat-l">Distinct</div>
+            </div>
+            <div>
+              <div className="stat-k">{money(stats.value)}</div>
+              <div className="stat-l">
+                {autoPrice === 'running'
+                  ? 'Refreshing prices…'
+                  : `English market value${priceAge ? ` · ${priceAge.label}` : ''}`}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="tools">
           {PUBLIC_MODE && (
@@ -287,7 +319,8 @@ export default function App() {
             </select>
 
             <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort order">
-              {SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              {SORTS.filter((o) => !(PUBLIC_MODE && o.ownerOnly))
+                .map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
 
             <div className="seg">

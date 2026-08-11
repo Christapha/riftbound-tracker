@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { DOMAIN_COLOR } from '../lib/catalog'
+import { DOMAIN_COLOR, PUBLIC_MODE } from '../lib/catalog'
 
 /**
  * One tick per card in the set, filled when owned. At 300 cards the row of ticks
@@ -15,9 +15,13 @@ function SetRail({ setCode, setName, cards, qty, onJump }) {
       <div className="rail-head">
         <span className="rail-set">{setCode}</span>
         <span className="rail-name">{setName}</span>
-        <span className="rail-count">
-          {owned} / {cards.length} printings
-        </span>
+        {/* A per-set owned count is still an inventory figure, so the published page
+            shows the texture without the number. */}
+        {!PUBLIC_MODE && (
+          <span className="rail-count">
+            {owned} / {cards.length} printings
+          </span>
+        )}
       </div>
       <div className="rail" role="list" aria-label={`${setName} completion`}>
         {cards.map((c) => {

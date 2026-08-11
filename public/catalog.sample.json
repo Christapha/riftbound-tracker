@@ -1,0 +1,6 @@
+[
+  { "set": "OGN", "number": "001", "finish": "Base", "name": "Sample Common", "rarity": "Common", "domain": "Fury", "type": "Unit", "image": "", "price": 0.25 },
+  { "set": "OGN", "number": "002", "finish": "Base", "name": "Sample Rare", "rarity": "Rare", "domain": "Calm", "type": "Spell", "image": "", "price": 1.5 },
+  { "set": "OGN", "number": "003", "finish": "Foil", "name": "Sample Epic", "rarity": "Epic", "domain": "Order", "type": "Gear", "image": "", "price": 8 },
+  { "set": "VEN", "number": "010", "finish": "Signature", "name": "Sample Signature", "rarity": "Signature", "domain": "Chaos", "type": "Champion", "image": "", "price": 120 }
+]

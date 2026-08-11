@@ -26,6 +26,7 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
   const [busy, setBusy] = useState(null)
   const [log, setLog] = useState(null)
   const [title, setTitle] = useState('')
+  const [contact, setContact] = useState('')
 
   const run = async (id) => {
     setBusy(id)
@@ -90,8 +91,8 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
           <div className="data-job-label">Publish a public snapshot</div>
           <div className="data-job-blurb">
             Writes what you own to <code>public/collection.json</code>. Commit and push it and
-            the hosted site shows your collection — read-only, no editing controls, no prices
-            refreshing from a visitor's browser.
+            the hosted site shows your collection — read-only, with a want list visitors can
+            build and send you. The contact line tells them where to send it.
           </div>
           <div className="data-publish-row">
             <input
@@ -101,6 +102,15 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
               aria-label="Public page title"
               onChange={(e) => setTitle(e.target.value)}
             />
+          </div>
+          <div className="data-publish-row">
+            <input
+              className="deck-name-input"
+              value={contact}
+              placeholder="Where to reach you, e.g. Discord chris#0001"
+              aria-label="Contact shown to visitors"
+              onChange={(e) => setContact(e.target.value)}
+            />
             <button
               className="btn btn-go"
               disabled={Boolean(busy)}
@@ -108,7 +118,7 @@ export default function DataPanel({ meta, qty, decks, onClose, onDone }) {
                 setBusy('publish')
                 setLog(null)
                 try {
-                  const res = await publishSnapshot(qty, decks, title.trim())
+                  const res = await publishSnapshot(qty, decks, title.trim(), contact.trim())
                   setLog({ ok: true, text: res.output })
                 } catch (e) {
                   setLog({ ok: false, text: e.message })

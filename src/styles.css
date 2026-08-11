@@ -540,3 +540,55 @@ select {
   .chart-svg { height: 220px; }
   .chart-value { font-size: 24px; }
 }
+
+/* ---------------------------------------------------------- visitor bag */
+.qty-bag { flex-direction: column; gap: 0; }
+.qty-stock {
+  font-family: var(--mono); font-size: 10.5px; color: var(--text-faint);
+  text-align: center; padding: 7px 0 5px;
+}
+.qty-pick {
+  display: flex; align-items: stretch; width: 100%;
+  border-top: 1px solid var(--ink-700);
+}
+.qty-pick button {
+  flex: 0 0 34px; background: transparent; border: 0; color: var(--text-dim);
+  font-size: 16px; line-height: 1; padding: 7px 0; cursor: pointer;
+}
+.qty-pick button:hover:not(:disabled) { background: var(--ink-600); color: var(--text); }
+.qty-pick button:disabled { opacity: 0.22; cursor: default; }
+.qty-pick span {
+  flex: 1; text-align: center; font-family: var(--mono); font-size: 13px; font-weight: 600;
+  padding: 7px 0; color: var(--text-faint);
+  border-left: 1px solid var(--ink-700); border-right: 1px solid var(--ink-700);
+}
+.qty-pick[data-picked='true'] span { color: var(--calm); }
+.card:has(.qty-pick[data-picked='true']) { border-color: var(--calm); }
+
+.bag-row { gap: 10px; }
+.bag-name { display: flex; flex-direction: column; gap: 2px; }
+.bag-finish {
+  font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint);
+}
+.bag-qty { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.bag-qty button {
+  width: 26px; height: 26px; background: var(--ink-700); border: 1px solid var(--ink-600);
+  border-radius: 4px; color: var(--text-dim); font-size: 14px; line-height: 1;
+}
+.bag-qty button:hover:not(:disabled) { background: var(--ink-600); color: var(--text); }
+.bag-qty button:disabled { opacity: 0.25; cursor: default; }
+.bag-qty b { font-family: var(--mono); font-size: 13px; min-width: 22px; text-align: center; }
+.bag-have { font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); flex: 0 0 42px; }
+
+.bag-actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+.bag-clear { margin-left: auto; }
+
+.bag-preview {
+  font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--text-dim);
+  background: var(--ink-800); border: 1px solid var(--ink-700); border-radius: var(--r);
+  padding: 12px; margin: 10px 0 0; overflow-x: auto; white-space: pre;
+}
+
+@media (max-width: 640px) {
+  .bag-have { display: none; }
+}

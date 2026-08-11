@@ -3,7 +3,7 @@ import { DOMAIN_COLOR, money } from '../lib/catalog'
 import { countOf } from '../lib/useCollection'
 import { PUBLIC_MODE } from '../lib/catalog'
 
-function CardTile({ card, qty, lang, onBump }) {
+function CardTile({ card, qty, lang, onBump, bagQty = 0, onBag }) {
   const [broken, setBroken] = useState(false)
   const here = countOf(qty, card.key, lang)
   const other = countOf(qty, card.key, lang === 'EN' ? 'CN' : 'EN')
@@ -35,8 +35,19 @@ function CardTile({ card, qty, lang, onBump }) {
       </div>
 
       {PUBLIC_MODE ? (
-        <div className="qty qty-static">
-          <div className="qty-n" data-owned={here > 0}>{here > 0 ? `${here}x` : '—'}</div>
+        // On the published site the count is the owner's stock, and the stepper is the
+        // visitor's request against it — capped so nobody can ask for more than exists.
+        <div className="qty qty-bag">
+          <div className="qty-stock">{here > 0 ? `${here} available` : 'none'}</div>
+          {here > 0 && onBag && (
+            <div className="qty-pick" data-picked={bagQty > 0}>
+              <button onClick={() => onBag(card.key, -1, here)} disabled={bagQty === 0}
+                      aria-label={`Take one ${card.name} off your list`}>−</button>
+              <span>{bagQty}</span>
+              <button onClick={() => onBag(card.key, 1, here)} disabled={bagQty >= here}
+                      aria-label={`Add one ${card.name} to your list`}>+</button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="qty" data-lang={lang}>

@@ -8,6 +8,8 @@ import DeckCheck from './components/DeckCheck'
 import { useDecks } from './lib/decks'
 import DataPanel from './components/DataPanel'
 import ValueChart from './components/ValueChart'
+import BagPanel from './components/BagPanel'
+import { useBag } from './lib/bag'
 import { useHistory } from './lib/history'
 
 const PAGE = 120
@@ -18,11 +20,13 @@ export default function App() {
   const [meta, setMeta] = useState({})
   const [dataOpen, setDataOpen] = useState(false)
   const [chartOpen, setChartOpen] = useState(false)
+  const [bagOpen, setBagOpen] = useState(false)
   const [autoPrice, setAutoPrice] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const live = useCollection()
   const liveDecks = useDecks()
   const [snapshot, setSnapshot] = useState(null)
+  const { bag, bump: bagBump, clear: bagClear } = useBag(PUBLIC_MODE)
 
   // On the hosted site the collection is a shipped file and nothing can edit it.
   const qty = PUBLIC_MODE ? (snapshot?.quantities || {}) : live.qty
@@ -136,6 +140,12 @@ export default function App() {
 
   const priceAge = useMemo(() => ageOf(meta.pricesUpdated), [meta.pricesUpdated])
 
+  const availableOf = useCallback((c) => countAll(qty, c.key), [qty])
+  const bagCount = useMemo(
+    () => Object.values(bag).reduce((n, v) => n + (v > 0 ? v : 0), 0),
+    [bag],
+  )
+
   const jumpTo = (key) => {
     const el = document.getElementById(`c-${key}`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -185,6 +195,11 @@ export default function App() {
         </div>
 
         <div className="tools">
+          {PUBLIC_MODE && (
+            <button className="btn btn-go" onClick={() => setBagOpen(true)} disabled={!ready}>
+              Your list{bagCount ? ` · ${bagCount}` : ''}
+            </button>
+          )}
           {(decks.length > 0 || !PUBLIC_MODE) && (
             <button className="btn btn-go" onClick={() => setDeckOpen(true)} disabled={!ready}>
               Decks{decks.length ? ` · ${decks.length}` : ''}
@@ -298,7 +313,15 @@ export default function App() {
       {visible.length > 0 && (
         <div className="grid">
           {visible.slice(0, limit).map((c) => (
-            <CardTile key={c.key} card={c} qty={qty} lang={lang} onBump={bump} />
+            <CardTile
+              key={c.key}
+              card={c}
+              qty={qty}
+              lang={lang}
+              onBump={bump}
+              bagQty={bag[c.key] || 0}
+              onBag={PUBLIC_MODE ? bagBump : undefined}
+            />
           ))}
           {visible.length > limit && (
             <div className="loadmore">
@@ -319,6 +342,19 @@ export default function App() {
           onRemove={removeDeck}
           onClose={() => setDeckOpen(false)}
           onJump={(k) => { setDeckOpen(false); setTimeout(() => jumpTo(k), 60) }}
+        />
+      )}
+
+      {bagOpen && PUBLIC_MODE && ready && (
+        <BagPanel
+          bag={bag}
+          cards={cards}
+          availableOf={availableOf}
+          onBump={bagBump}
+          onClear={bagClear}
+          onClose={() => setBagOpen(false)}
+          title={snapshot?.title}
+          contact={snapshot?.contact}
         />
       )}
 

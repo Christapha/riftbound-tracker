@@ -4,7 +4,7 @@ A self-hosted collection tracker for [Riftbound](https://playriftbound.com), the
 Legends trading card game. Runs locally for logging what you pull, and builds a second time
 as a read-only public page.
 
-**Live site:** _add your GitHub Pages URL here after the first deploy_
+**Live site:** https://christapha.github.io/riftbound-tracker/
 
 ## What it does
 
